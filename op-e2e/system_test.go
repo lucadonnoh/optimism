@@ -1114,3 +1114,43 @@ func TestFees(t *testing.T) {
 func safeAddBig(a *big.Int, b *big.Int) *big.Int {
 	return new(big.Int).Add(a, b)
 }
+
+func TestProposerSafeHead(t *testing.T) {
+	if !verboseGethNodes {
+		log.Root().SetHandler(log.DiscardHandler())
+	}
+
+	cfg := defaultSystemConfig(t)
+	cfg.RollupConfig.BlockTime = 10
+
+	sys, err := cfg.start()
+	require.Nil(t, err, "Error starting up system")
+	defer sys.Close()
+
+	l2Verif := sys.Clients["verifier"]
+
+	// Transactor Account
+	ethPrivKey, err := sys.wallet.PrivateKey(accounts.Account{
+		URL: accounts.URL{
+			Path: transactorHDPath,
+		},
+	})
+	require.Nil(t, err)
+	fromAddr := crypto.PubkeyToAddress(ethPrivKey.PublicKey)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	// Test L2OutputOracle works indirectly by testing eth_estimateGas
+	// If using unsafe head, it fails with "cannot propose L2 output in the future"
+	gas, err := l2Verif.EstimateGas(ctx, ethereum.CallMsg{
+		From:  fromAddr,
+		To:    &common.Address{0xff, 0xff},
+		Value: big.NewInt(1000),
+		Data:  []byte{},
+	})
+	if err != nil {
+		t.Errorf("could not estimate gas: %v", err)
+	}
+	require.Equal(t, gas, uint64(21000), "estimate gas failed")
+}
