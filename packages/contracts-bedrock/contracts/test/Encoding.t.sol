@@ -31,4 +31,64 @@ contract Encoding_Test is CommonTest {
             hex"7e00f862a0f923fb07134d7d287cb52c770cc619e17e82606c21a875c92f4c63b65280a5cc94f39fd6e51aad88f6f4ce6ab8827279cfffb9226694b79f76ef2c5f0286176833e7b2eee103b1cc3244880e043da617250000880de0b6b3a7640000832dc6c080"
         );
     }
+
+    function test_decodeVersionedNonce_differential(uint240 _nonce, uint16 _version) external {
+        uint256 nonce = uint256(Encoding.encodeVersionedNonce(_nonce, _version));
+
+        string[] memory cmds = new string[](4);
+        cmds[0] = "node";
+        cmds[1] = "dist/scripts/differential-testing.js";
+        cmds[2] = "decodeVersionedNonce";
+        cmds[3] = vm.toString(nonce);
+
+        bytes memory result = vm.ffi(cmds);
+        (uint256 decodedNonce, uint256 decodedVersion) = abi.decode(result, (uint256, uint256));
+        assertEq(
+            _version,
+            uint16(decodedVersion)
+        );
+
+        assertEq(
+            _nonce,
+            uint240(decodedNonce)
+        );
+    }
+
+    function test_encodeCrossDomainMessage_differential(
+        uint240 _nonce,
+        uint8 _version,
+        address _sender,
+        address _target,
+        uint256 _value,
+        uint256 _gasLimit,
+        bytes memory _data
+    ) external {
+        uint8 version = _version % 2;
+        uint256 nonce = Encoding.encodeVersionedNonce(_nonce, version);
+        bytes memory encoding = Encoding.encodeCrossDomainMessage(
+            nonce,
+            _sender,
+            _target,
+            _value,
+            _gasLimit,
+            _data
+        );
+
+        string[] memory cmds = new string[](9);
+        cmds[0] = "node";
+        cmds[1] = "dist/scripts/differential-testing.js";
+        cmds[2] = "encodeCrossDomainMessage";
+        cmds[3] = vm.toString(nonce);
+        cmds[4] = vm.toString(_sender);
+        cmds[5] = vm.toString(_target);
+        cmds[6] = vm.toString(_value);
+        cmds[7] = vm.toString(_gasLimit);
+        cmds[8] = vm.toString(_data);
+
+        bytes memory result = vm.ffi(cmds);
+        assertEq(
+            encoding,
+            abi.decode(result, (bytes))
+        );
+    }
 }
