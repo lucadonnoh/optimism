@@ -6,6 +6,7 @@ import { Portal_Initializer, CommonTest, NextImpl } from "./CommonTest.t.sol";
 import { AddressAliasHelper } from "../vendor/AddressAliasHelper.sol";
 import { L2OutputOracle } from "../L1/L2OutputOracle.sol";
 import { OptimismPortal } from "../L1/OptimismPortal.sol";
+import { Types } from "../libraries/Types.sol";
 import { Hashing } from "../libraries/Hashing.sol";
 import { Proxy } from "../universal/Proxy.sol";
 
@@ -221,7 +222,7 @@ contract OptimismPortal_Test is Portal_Initializer {
     // function test_verifyWithdrawal() external {}
 
     function test_cannotVerifyRecentWithdrawal() external {
-        Hashing.OutputRootProof memory outputRootProof = Hashing
+        Types.OutputRootProof memory outputRootProof = Types
             .OutputRootProof({
                 version: bytes32(0),
                 stateRoot: bytes32(0),
@@ -230,11 +231,11 @@ contract OptimismPortal_Test is Portal_Initializer {
             });
 
         vm.expectRevert("OptimismPortal: proposal is not yet finalized");
-        op.finalizeWithdrawalTransaction(0, alice, alice, 0, 0, hex"", 0, outputRootProof, hex"");
+        op.finalizeWithdrawalTransaction(Types.WithdrawalTransaction(0, alice, alice, 0, 0, hex""), 0, outputRootProof, hex"");
     }
 
     function test_invalidWithdrawalProof() external {
-        Hashing.OutputRootProof memory outputRootProof = Hashing
+        Types.OutputRootProof memory outputRootProof = Types
             .OutputRootProof({
                 version: bytes32(0),
                 stateRoot: bytes32(0),
@@ -250,7 +251,7 @@ contract OptimismPortal_Test is Portal_Initializer {
         );
 
         vm.expectRevert("OptimismPortal: invalid output root proof");
-        op.finalizeWithdrawalTransaction(0, alice, alice, 0, 0, hex"", 0, outputRootProof, hex"");
+        op.finalizeWithdrawalTransaction(Types.WithdrawalTransaction(0, alice, alice, 0, 0, hex""), 0, outputRootProof, hex"");
     }
 
     function test_simple_isOutputFinalized() external {
@@ -260,7 +261,7 @@ contract OptimismPortal_Test is Portal_Initializer {
                 L2OutputOracle.getL2Output.selector
             ),
             abi.encode(
-                L2OutputOracle.OutputProposal(
+                Types.OutputProposal(
                     bytes32(uint256(1)),
                     0
                 )
