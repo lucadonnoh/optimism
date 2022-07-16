@@ -4,9 +4,12 @@ pragma solidity 0.8.10;
 import { CommonTest } from "./CommonTest.t.sol";
 import { Hashing } from "../libraries/Hashing.sol";
 import { Encoding } from "../libraries/Encoding.sol";
-import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract Hashing_Test is CommonTest {
+    function setUp() external {
+        _setUp();
+    }
+
     function test_hashDepositSource() external {
         bytes32 sourceHash = Hashing.hashDepositSource(
             0xd25df7858efc1778118fb133ac561b138845361626dfb976699c5287ed0f4959,
@@ -31,16 +34,14 @@ contract Hashing_Test is CommonTest {
         (, uint16 version) = Encoding.decodeVersionedNonce(_nonce);
         vm.assume(version < 2);
 
-        string[] memory cmds = new string[](9);
-        cmds[0] = "node";
-        cmds[1] = "dist/scripts/differential-testing.js";
-        cmds[2] = "hashCrossDomainMessage";
-        cmds[3] = vm.toString(_nonce);
-        cmds[4] = vm.toString(_sender);
-        cmds[5] = vm.toString(_target);
-        cmds[6] = vm.toString(_value);
-        cmds[7] = vm.toString(_gasLimit);
-        cmds[8] = vm.toString(_data);
+        bytes32 _hash = ffi.hashCrossDomainMessage(
+            _nonce,
+            _sender,
+            _target,
+            _value,
+            _gasLimit,
+            _data
+        );
 
         bytes32 hash = Hashing.hashCrossDomainMessage(
             _nonce,
@@ -51,11 +52,7 @@ contract Hashing_Test is CommonTest {
             _data
         );
 
-        bytes memory result = vm.ffi(cmds);
-        assertEq(
-            hash,
-            abi.decode(result, (bytes32))
-        );
+        assertEq(hash, _hash);
     }
 
     function test_hashDepositTransaction() external {
@@ -94,22 +91,16 @@ contract Hashing_Test is CommonTest {
             _data
         );
 
-        string[] memory cmds = new string[](9);
-        cmds[0] = "node";
-        cmds[1] = "dist/scripts/differential-testing.js";
-        cmds[2] = "hashWithdrawal";
-        cmds[3] = vm.toString(_nonce);
-        cmds[4] = vm.toString(_sender);
-        cmds[5] = vm.toString(_target);
-        cmds[6] = vm.toString(_value);
-        cmds[7] = vm.toString(_gasLimit);
-        cmds[8] = vm.toString(_data);
-
-        bytes memory result = vm.ffi(cmds);
-        assertEq(
-            hash,
-            abi.decode(result, (bytes32))
+        bytes32 _hash = ffi.hashWithdrawal(
+            _nonce,
+            _sender,
+            _target,
+            _value,
+            _gasLimit,
+            _data
         );
+
+        assertEq(hash, _hash);
     }
 
     function test_hashOutputRootProof_differential(
@@ -127,20 +118,14 @@ contract Hashing_Test is CommonTest {
 
         bytes32 hash = Hashing.hashOutputRootProof(proof);
 
-        string[] memory cmds = new string[](7);
-        cmds[0] = "node";
-        cmds[1] = "dist/scripts/differential-testing.js";
-        cmds[2] = "hashOutputRootProof";
-        cmds[3] = Strings.toHexString(uint256(_version));
-        cmds[4] = Strings.toHexString(uint256(_stateRoot));
-        cmds[5] = Strings.toHexString(uint256(_withdrawerStorageRoot));
-        cmds[6] = Strings.toHexString(uint256(_latestBlockhash));
-
-        bytes memory result = vm.ffi(cmds);
-        assertEq(
-            hash,
-            abi.decode(result, (bytes32))
+        bytes32 _hash = ffi.hashOutputRootProof(
+            _version,
+            _stateRoot,
+            _withdrawerStorageRoot,
+            _latestBlockhash
         );
+
+        assertEq(hash, _hash);
     }
 
     // TODO(tynes): foundry bug cannot serialize
@@ -154,7 +139,7 @@ contract Hashing_Test is CommonTest {
         bytes memory _data,
         uint256 _logIndex
     ) external {
-        bytes32 digest = Hashing.hashDepositTransaction(
+        bytes32 hash = Hashing.hashDepositTransaction(
             _from,
             _to,
             _value,
@@ -166,27 +151,16 @@ contract Hashing_Test is CommonTest {
             _logIndex
         );
 
-        bytes memory result;
-
-        {
-            string[] memory cmds = new string[](11);
-            cmds[0] = "node";
-            cmds[1] = "dist/scripts/differential-testing.js";
-            cmds[2] = "hashDepositTransaction";
-            cmds[3] = "0x0000000000000000000000000000000000000000000000000000000000000000";
-            cmds[4] = vm.toString(_logIndex);
-            cmds[5] = vm.toString(_from);
-            cmds[6] = vm.toString(_to);
-            cmds[7] = vm.toString(_mint);
-            cmds[8] = vm.toString(_value);
-            cmds[9] = vm.toString(_gas);
-            cmds[10] = vm.toString(_data);
-            result = vm.ffi(cmds);
-        }
-
-        assertEq(
-            abi.decode(result, (bytes32)),
-            digest
+        bytes32 _hash = ffi.hashDepositTransaction(
+            _from,
+            _to,
+            _mint,
+            _value,
+            _gas,
+            _data,
+            _logIndex
         );
+
+        assertEq(hash, _hash);
     }
 }

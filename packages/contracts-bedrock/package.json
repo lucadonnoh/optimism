@@ -35,6 +35,8 @@
   },
   "dependencies": {
     "@eth-optimism/core-utils": "^0.9.1",
+    "@ethereumjs/trie": "^5.0.0-beta.1",
+    "@ethereumjs/util": "^8.0.0-beta.1",
     "@openzeppelin/contracts": "^4.5.0",
     "@openzeppelin/contracts-upgradeable": "^4.5.2",
     "@rari-capital/solmate": "https://github.com/rari-capital/solmate.git#8f9b23f8838670afda0fd8983f2c41e8037ae6bc",

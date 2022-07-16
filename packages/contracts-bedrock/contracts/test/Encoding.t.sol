@@ -1,10 +1,14 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
 import { CommonTest } from "./CommonTest.t.sol";
 import { Encoding } from "../libraries/Encoding.sol";
 
 contract Encoding_Test is CommonTest {
+    function setUp() external {
+        _setUp();
+    }
+
     function test_nonceVersioning(uint240 _nonce, uint16 _version) external {
         (uint240 nonce, uint16 version) = Encoding.decodeVersionedNonce(
             Encoding.encodeVersionedNonce(_nonce, _version)
@@ -34,15 +38,8 @@ contract Encoding_Test is CommonTest {
 
     function test_decodeVersionedNonce_differential(uint240 _nonce, uint16 _version) external {
         uint256 nonce = uint256(Encoding.encodeVersionedNonce(_nonce, _version));
+        (uint256 decodedNonce, uint256 decodedVersion) = ffi.decodeVersionedNonce(nonce);
 
-        string[] memory cmds = new string[](4);
-        cmds[0] = "node";
-        cmds[1] = "dist/scripts/differential-testing.js";
-        cmds[2] = "decodeVersionedNonce";
-        cmds[3] = vm.toString(nonce);
-
-        bytes memory result = vm.ffi(cmds);
-        (uint256 decodedNonce, uint256 decodedVersion) = abi.decode(result, (uint256, uint256));
         assertEq(
             _version,
             uint16(decodedVersion)
@@ -65,6 +62,7 @@ contract Encoding_Test is CommonTest {
     ) external {
         uint8 version = _version % 2;
         uint256 nonce = Encoding.encodeVersionedNonce(_nonce, version);
+
         bytes memory encoding = Encoding.encodeCrossDomainMessage(
             nonce,
             _sender,
@@ -74,21 +72,15 @@ contract Encoding_Test is CommonTest {
             _data
         );
 
-        string[] memory cmds = new string[](9);
-        cmds[0] = "node";
-        cmds[1] = "dist/scripts/differential-testing.js";
-        cmds[2] = "encodeCrossDomainMessage";
-        cmds[3] = vm.toString(nonce);
-        cmds[4] = vm.toString(_sender);
-        cmds[5] = vm.toString(_target);
-        cmds[6] = vm.toString(_value);
-        cmds[7] = vm.toString(_gasLimit);
-        cmds[8] = vm.toString(_data);
-
-        bytes memory result = vm.ffi(cmds);
-        assertEq(
-            encoding,
-            abi.decode(result, (bytes))
+        bytes memory _encoding = ffi.encodeCrossDomainMessage(
+            nonce,
+            _sender,
+            _target,
+            _value,
+            _gasLimit,
+            _data
         );
+
+        assertEq(encoding, _encoding);
     }
 }
